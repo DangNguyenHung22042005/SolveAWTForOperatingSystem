@@ -47,7 +47,7 @@ void SolveWithFCFS() {
     tt[1] = p[1].second.first + p[1].second.second;
     for (int i = 2; i <= n; i++) {
         if (p[i].second.first == p[i - 1].second.first) {
-            tt[i] = p[i].second.first + p[i].second.second;
+            tt[i] = tt[i - 1] + p[i].second.second;
         } else {
             if (p[i].second.first <= tt[i - 1]) {
                 tt[i] = tt[i - 1] + p[i].second.second;
@@ -248,3 +248,11 @@ int main() {
 //D 3 3
 //E 2 7
 //F 9 1
+
+//Test case 5 đây nha mọi người!
+//5
+//A 0 8
+//B 2 19
+//C 4 3
+//D 5 6
+//E 7 10
