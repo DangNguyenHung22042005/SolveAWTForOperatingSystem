@@ -204,11 +204,85 @@ void SolveWithSRTF() {
     cout << "AWT (SRTF): " << fixed << setprecision(3) << awt << endl;
 }
 
+void SolveWithRR() {
+    int timeQuantum;
+    cout << "Enter time quantum to solve with Round Robin: ";
+    cin >> timeQuantum;
+    sort(p, p + n + 1, cmp);
+    int mm[maxn];
+    bool ever[maxn];
+    int remainingTime[maxn];
+    for (int i = 1; i <= n; i++) {
+        mm[i] = p[i].second.first + p[i].second.second;
+        remainingTime[i] = p[i].second.second;
+        ever[i] = false;
+    }
+    queue<pair<char, int>> gantt;
+    queue<int> ready;
+    int tt[maxn];
+    int currentTime = 0, completed = 0;
+    bool isAllProccessInQueue = false;
+    int proccessInQuantum = 0;
+    remainingTime[0] = -1;
+    while (completed != n) {
+        if (!isAllProccessInQueue) {
+            for (int i = 1; i <= n; i++) {
+                if (!ever[i] && remainingTime[i] > 0 && p[i].second.first <= currentTime) {
+                    ready.push(i);
+                    ever[i] = true;
+                    if (i == n) {
+                        isAllProccessInQueue = true;
+                    }
+                }
+            }
+        }
+        if (remainingTime[proccessInQuantum] == 0) {
+            ready.pop();
+        } else if (remainingTime[proccessInQuantum] != -1) {
+            ready.pop();
+            ready.push(proccessInQuantum);
+        }
+        proccessInQuantum = ready.front();
+        if (remainingTime[proccessInQuantum] <= timeQuantum) {
+            currentTime += remainingTime[proccessInQuantum];
+            remainingTime[proccessInQuantum] = 0;
+            tt[proccessInQuantum] = currentTime;
+            completed++;
+        } else {
+            remainingTime[proccessInQuantum] -= timeQuantum;
+            currentTime += timeQuantum;
+        }
+        gantt.push({p[proccessInQuantum].first, currentTime});
+    }
+    int wt[maxn];
+    double awt = 0;
+    for (int i = 1; i <= n; i++) {
+        wt[i] = tt[i] - mm[i];
+        awt += wt[i];
+    }
+    awt /= n;
+    cout << "#RR:" <<endl;
+    cout << "Gantt (RR): ";
+    cout << "|" << p[1].second.first << "|";
+    while (!gantt.empty()) {
+        pair<char, int> tmp = gantt.front();
+        gantt.pop();
+        cout << "--" << tmp.first << "--|" << tmp.second << "|";
+    }
+    cout << endl;
+    cout << "P | Mong muon | Thuc Te | Waiting Time" << endl;
+    for (int i = 1; i <= n; i++) {
+        cout << p[i].first << " | " << mm[i] << " | " << tt[i] << " | " << wt[i] << endl;
+    }
+    cout << "AWT (RR): " << fixed << setprecision(3) << awt << endl;
+}
+
 int main() {
     Input();
     SolveWithFCFS();
     SolveWithSJF();
     SolveWithSRTF();
+    SolveWithRR();
     return 0;
 }
 
@@ -256,3 +330,11 @@ int main() {
 //C 4 3
 //D 5 6
 //E 7 10
+
+//Test case 6 đây nha mọi người!
+//5
+//A 1 6
+//B 0 8
+//C 12 7
+//D 3 2
+//E 2 5
