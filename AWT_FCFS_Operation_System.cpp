@@ -12,6 +12,13 @@ const int maxn = 1001;
 int n;
 pair<char, pair<int, int>> p[maxn];
 
+struct Proccess {
+    char name;
+    int arrivalTime, burstTime, priority;
+};
+
+Proccess pp[maxn];
+
 bool cmp(pair<char, pair<int, int>> a, pair<char, pair<int, int>> b) {
     if (a.second.first == b.second.first) {
         return a.second.second < b.second.second;
@@ -19,7 +26,14 @@ bool cmp(pair<char, pair<int, int>> a, pair<char, pair<int, int>> b) {
     return a.second.first < b.second.first;
 }
 
-void Input() {
+bool cmpp(Proccess a, Proccess b) {
+    if (a.arrivalTime == b.arrivalTime) {
+        return a.priority < b.priority;
+    }
+    return a.arrivalTime < b.arrivalTime;
+}
+
+void InputAB() {
     cin >> n;
     for (int i = 1; i <= n; i++) {
         char c;
@@ -31,9 +45,16 @@ void Input() {
     }
 }
 
-void Display() {
+void InputABP() {
+    cin >> n;
     for (int i = 1; i <= n; i++) {
-        cout << p[i].first << " " << p[i].second.first << " " << p[i].second.second << endl;
+        char name;
+        int arrivalTime, burstTime, priority;
+        cin >> name >> arrivalTime >> burstTime >> priority;
+        pp[i].name = name;
+        pp[i].arrivalTime = arrivalTime;
+        pp[i].burstTime = burstTime;
+        pp[i].priority = priority;
     }
 }
 
@@ -277,16 +298,159 @@ void SolveWithRR() {
     cout << "AWT (RR): " << fixed << setprecision(3) << awt << endl;
 }
 
+void SolveWithNPP() {
+    sort(pp, pp + n + 1, cmpp);
+    int mm[maxn];
+    for (int i = 1; i <= n; i++) {
+        mm[i] = pp[i].arrivalTime + pp[i].burstTime;
+    }
+    int tt[maxn];
+    memset(tt, -1, sizeof(tt));
+    stack<pair<char, int>> current;
+    tt[1] = pp[1].arrivalTime + pp[1].burstTime;
+    current.push({pp[1].name, tt[1]});
+    while (current.size() < n) {
+        int minPriority = INT_MAX;
+        int nextProcess = -1;
+        for (int i = 2; i <= n; i++) {
+            if (tt[i] == -1 && pp[i].arrivalTime <= current.top().second && pp[i].priority < minPriority) {
+                minPriority = pp[i].priority;
+                nextProcess = i;
+            }
+        }
+        if (nextProcess != -1) {
+            tt[nextProcess] = current.top().second + pp[nextProcess].burstTime;
+            current.push({pp[nextProcess].name, tt[nextProcess]});
+        } else {
+            for (int i = 2; i <= n; i++) {
+                if (tt[i] == -1) {
+                    tt[i] = pp[i].arrivalTime + pp[i].burstTime;
+                    current.push({pp[i].name, tt[i]});
+                    break;
+                }
+            }
+        }
+    }
+    int wt[maxn];
+    double awt = 0;
+    double att = 0;
+    for (int i = 1; i <= n; i++) {
+        wt[i] = tt[i] - mm[i];
+        awt += wt[i];
+        att += wt[i] + pp[i].burstTime;
+    }
+    awt /= n;
+    att /= n;
+    vector<pair<char, int>> v;
+    while (!current.empty()) {
+        pair<char, int> top = current.top();
+        current.pop();
+        v.push_back(top);
+    }
+    reverse(v.begin(), v.end());
+    cout << "#NPP:" <<endl;
+    cout << "Gantt (NPP): ";
+    cout << "|" << pp[1].arrivalTime << "|---" << pp[1].name << "---|" << tt[1];
+    for (int i = 1; i < n; i++) {
+        cout << "|---" << v[i].first << "---|" << v[i].second;
+    }
+    cout << "|" << endl;
+    cout << "P | Mong muon | Thuc Te | Waiting Time" << endl;
+    for (int i = 1; i <= n; i++) {
+        cout << pp[i].name << " | " << mm[i] << " | " << tt[i] << " | " << wt[i] << endl;
+    }
+    cout << "AWT (NPP): " << fixed << setprecision(3) << awt << endl;
+    cout << "ATT (NPP): " << fixed << setprecision(3) << att << endl;
+}
+
+void SolveWithPP() {
+    sort(pp, pp + n + 1, cmpp);
+    int mm[maxn];
+    int remainingTime[maxn];
+    for (int i = 1; i <= n; i++) {
+        mm[i] = pp[i].arrivalTime + pp[i].burstTime;
+        remainingTime[i] = pp[i].burstTime;
+    }
+    queue<pair<char, int>> gantt;
+    int tt[maxn];
+    int currentTime = 0, completed = 0, oldProcess = 1;
+    while (completed != n) {
+        int nextProcess = -1;
+        int minPriority = INT_MAX;
+        for (int i = 1; i <= n; i++) {
+            if (remainingTime[i] > 0 && pp[i].arrivalTime <= currentTime) {
+                if (pp[i].priority < minPriority) {
+                    minPriority = pp[i].priority;
+                    nextProcess = i;
+                }
+            }
+        }
+        if (nextProcess == -1) {
+            ++currentTime;
+            continue;
+        }
+        if (nextProcess != oldProcess) {
+            char c = pp[oldProcess].name;
+            gantt.push({c, currentTime});
+            oldProcess = nextProcess;
+        }
+        --remainingTime[nextProcess];
+        ++currentTime;
+        if (remainingTime[nextProcess] == 0) {
+            ++completed;
+            tt[nextProcess] = currentTime;
+        }
+    }
+    gantt.push({pp[oldProcess].name, currentTime});
+    int wt[maxn];
+    double awt = 0;
+    for (int i = 1; i <= n; i++) {
+        wt[i] = tt[i] - mm[i];
+        awt += wt[i];
+    }
+    awt /= n;
+    cout << "#PP:" <<endl;
+    cout << "Gantt (PP): ";
+    cout << "|" << pp[1].arrivalTime << "|";
+    while (!gantt.empty()) {
+        pair<char, int> tmp = gantt.front();
+        gantt.pop();
+        cout << "--" << tmp.first << "--|" << tmp.second << "|";
+    }
+    cout << endl;
+    cout << "P | Mong muon | Thuc Te | Waiting Time" << endl;
+    for (int i = 1; i <= n; i++) {
+        cout << pp[i].name << " | " << mm[i] << " | " << tt[i] << " | " << wt[i] << endl;
+    }
+    cout << "AWT (PP): " << fixed << setprecision(3) << awt << endl;
+}
+
 int main() {
-    Input();
-    SolveWithFCFS();
-    SolveWithSJF();
-    SolveWithSRTF();
-    SolveWithRR();
+    cout << "Enter 1 to solve without priority (FCFS, SJF, SRTF, RR)" << endl;
+    cout << "Enter 2 to solve with priority (NPP, PP)" << endl;
+    int choose = 0;
+    cin >> choose;
+    while (choose != 1 && choose != 2) {
+        cin >> choose;
+    }
+    if (choose == 1) {
+        InputAB();
+        SolveWithFCFS();
+        SolveWithSJF();
+        SolveWithSRTF();
+        SolveWithRR();
+    } else {
+        InputABP();
+        SolveWithNPP();
+        SolveWithPP();
+    }
     return 0;
 }
 
+// #TEST CASE CHO ENTER = 1 (FCFS, SJF, SRTF, RR)
+
 //Test case 1 đây nha mọi người!
+//1
 //7
 //A 0 3
 //B 2 2
@@ -297,6 +461,7 @@ int main() {
 //G 1 2
 
 //Test case 2 đây nha mọi người!
+//1
 //6
 //A 0 6
 //B 2 2
@@ -306,6 +471,7 @@ int main() {
 //F 5 6
 
 //Test case 3 đây nha mọi người!
+//1
 //6
 //A 1 6
 //B 0 8
@@ -315,6 +481,7 @@ int main() {
 //F 10 3
 
 //Test case 4 đây nha mọi người!
+//1
 //6
 //A 0 12
 //B 1 10
@@ -324,6 +491,7 @@ int main() {
 //F 9 1
 
 //Test case 5 đây nha mọi người!
+//1
 //5
 //A 0 8
 //B 2 19
@@ -332,9 +500,33 @@ int main() {
 //E 7 10
 
 //Test case 6 đây nha mọi người!
+//1
 //5
 //A 1 6
 //B 0 8
 //C 12 7
 //D 3 2
 //E 2 5
+
+
+// #TEST CASE CHO ENTER = 2 (NPP, PP)
+
+//Test case 1 đây nha mọi người!
+//2
+//6
+//A 0 3 6
+//B 2 2 5
+//C 4 4 3
+//D 1 6 7
+//E 3 3 2
+//F 5 6 1
+
+//Test case 2 đây nha mọi người!
+//2
+//6
+//A 1 3 2
+//B 5 4 5
+//C 4 3 3
+//D 0 5 4
+//E 3 4 6
+//F 2 6 1
